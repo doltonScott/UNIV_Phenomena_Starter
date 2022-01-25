@@ -1,18 +1,14 @@
 // Require the Client constructor from the pg package
 const { Client } = require("pg");
-
 // Create a constant, CONNECTION_STRING, from either process.env.DATABASE_URL or postgres://localhost:5432/phenomena-dev
 const CONNECTION_STRING =
-  process.env.DATABASE_URL || "postgres://localhost:5432/dev";
-
+  process.env.DATABASE_URL || "postgres://localhost:5432/phenomena-dev";
 // Create the client using new Client(CONNECTION_STRING)
 // Do not connect to the client in this file!
 const client = new Client(CONNECTION_STRING);
-
 /**
  * Report Related Methods
  */
-
 /**
  * You should select all reports which are open.
  *
@@ -28,7 +24,6 @@ async function getOpenReports() {
       SELECT * FROM reports
       WHERE "isOpen"=true;
     `);
-
     // then load the comments only for those reports, using a
     // WHERE "reportId" IN () clause
     for (let i = 0; i < openReports.length; i++) {
@@ -36,13 +31,11 @@ async function getOpenReports() {
         SELECT * FROM comments
         WHERE "reportId"=${openReports[i].id};
       `);
-
       openReports[i].comments = comments;
       openReports[i].isExpired =
         Date.parse(openReports[i].expirationDate) < new Date();
       delete openReports[i].password;
     }
-
     // then, build two new properties on each report:
     // .comments for the comments which go with it
     //    it should be an array, even if there are none
@@ -55,7 +48,6 @@ async function getOpenReports() {
     throw error;
   }
 }
-
 /**
  * You should use the reportFields parameter (which is
  * an object with properties: title, location, description, password)
@@ -69,7 +61,6 @@ async function getOpenReports() {
  */
 async function createReport({ title, location, description, password }) {
   // Get all of the fields from the passed in object
-
   try {
     // insert the correct fields into the reports table
     const {
@@ -82,19 +73,15 @@ async function createReport({ title, location, description, password }) {
     `,
       [title, location, description, password]
     );
-
     // remember to return the new row from the query
     // remove the password from the returned row
-
     delete report.password;
-
     // return the new report
     return report;
   } catch (error) {
     throw error;
   }
 }
-
 /**
  * NOTE: This function is not for use in other files, so we use an _ to
  * remind us that it is only to be used internally.
@@ -109,7 +96,6 @@ async function createReport({ title, location, description, password }) {
  * be returned by the API, but instead used to make choices in other
  * functions.
  */
-
 // we don't know what reportId is
 // it's probably coming from a route /reports/:reportId
 // if i'm a malicious user, i can type this into my browser (or i can curl)
@@ -132,7 +118,6 @@ async function _getReport(reportId) {
     throw error;
   }
 }
-
 /**
  * You should update the report where the reportId
  * and password match, setting isOpen to false.
@@ -154,22 +139,18 @@ async function closeReport(reportId, password) {
     `,
       [reportId]
     );
-
     // If it doesn't exist, throw an error with a useful message
     if (!report) {
       throw new Error("Report does not exist with that id");
     }
-
     // If the passwords don't match, throw an error
     if (report.password !== password) {
       throw new Error("Password incorrect for this report, please try again");
     }
-
     // If it has already been closed, throw an error with a useful message
     if (!report.isOpen) {
       throw new Error("This report has already been closed");
     }
-
     // Finally, update the report if there are no failures, as above
     await client.query(
       `
@@ -178,18 +159,15 @@ async function closeReport(reportId, password) {
       WHERE id=${report.id};
     `
     );
-
     // Return a message stating that the report has been closed
     return { message: "Report successfully closed!" };
   } catch (error) {
     throw error;
   }
 }
-
 /**
  * Comment Related Methods
  */
-
 /**
  * If the report is not found, or is closed or expired, throw an error
  *
@@ -200,28 +178,23 @@ async function closeReport(reportId, password) {
 async function createReportComment(reportId, commentFields) {
   // read off the content from the commentFields
   const { content } = commentFields;
-
   try {
     // grab the report we are going to be commenting on
     const report = await _getReport(reportId);
-
     // if it wasn't found, throw an error saying so
     if (!report) {
       throw new Error("That report does not exist, no comment has been made");
     }
-
     // if it is not open, throw an error saying so
     if (!report.isOpen) {
       throw new Error("That report has been closed, no comment has been made");
     }
-
     // if the current date is past the expiration, throw an error saying so
     if (Date.parse(report.expirationDate) < new Date()) {
       throw new Error(
         "The discussion time on this report has expired, no comment has been made"
       );
     }
-
     // you can use Date.parse(report.expirationDate) < new Date() to check
     // all go: insert a comment
     const {
@@ -234,19 +207,16 @@ async function createReportComment(reportId, commentFields) {
     `,
       [content, reportId]
     );
-
     // then update the expiration date to a day from now
     let today = new Date();
     today.setDate(today.getDate() + 1);
     report.expirationDate = today;
-
     // finally, return the comment
     return comment;
   } catch (error) {
     throw error;
   }
 }
-
 // export the client and all database functions below
 module.exports = {
   client,
